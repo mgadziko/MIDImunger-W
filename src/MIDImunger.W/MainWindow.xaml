@@ -4,9 +4,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="MIDImunger-W" Height="700" Width="1080" MinHeight="500" MinWidth="780">
+        Title="MIDImunger-W" Height="700" Width="1080" MinHeight="500" MinWidth="780"
+        Loaded="Window_Loaded" Closed="Window_Closed">
     <Grid Margin="16">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="180" />
@@ -19,7 +21,33 @@
             <Button DockPanel.Dock="Right" Padding="14,5" Click="AllNotesOff_Click" Content="All Notes Off" />
         </DockPanel>
 
-        <DataGrid Grid.Row="1" ItemsSource="{Binding Channels}" IsReadOnly="True" AutoGenerateColumns="False"
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+            <GroupBox Header="Inputs" Margin="0,0,8,0">
+                <ListBox ItemsSource="{Binding Inputs}" BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding Name}" IsChecked="{Binding IsEnabled}" Click="InputEnabled_Click" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </GroupBox>
+            <GroupBox Grid.Column="1" Header="MIDI Thru destination" Margin="0,0,8,0">
+                <ComboBox ItemsSource="{Binding Outputs}" SelectedItem="{Binding SelectedOutput}"
+                          DisplayMemberPath="Name" Margin="6" />
+            </GroupBox>
+            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                <Button Padding="14,5" HorizontalAlignment="Left" Click="RefreshEndpoints_Click" Content="Refresh MIDI devices" />
+                <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
+                           Foreground="DimGray" Text="Messages from enabled inputs are forwarded immediately to the selected destination." />
+            </StackPanel>
+        </Grid>
+
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Channels}" IsReadOnly="True" AutoGenerateColumns="False"
                   CanUserAddRows="False" HeadersVisibility="Column">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Channel" Binding="{Binding Number}" Width="80" />
@@ -31,10 +59,10 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <GroupBox Grid.Row="2" Header="MIDI log" Margin="0,12,0,12">
+        <GroupBox Grid.Row="3" Header="MIDI log" Margin="0,12,0,12">
             <ListBox ItemsSource="{Binding LogEntries}" BorderThickness="0" />
         </GroupBox>
 
-        <TextBlock Grid.Row="3" Foreground="DimGray" Text="{Binding Status}" />
+        <TextBlock Grid.Row="4" Foreground="DimGray" Text="{Binding Status}" />
     </Grid>
 </Window>

@@ -5,9 +5,15 @@ Windows MIDI 1.0 monitoring and routing application, initially targeting .NET 8 
 ## Current foundation
 
 - A platform-neutral MIDI byte-stream parser handling channel messages, running status, system common, realtime traffic, and fragmented SysEx.
-- A testable `IMidiBackend` boundary for Windows endpoint enumeration, input callbacks, and output delivery.
-- A WPF monitor shell with per-channel state and a bounded MIDI event log.
+- A WinMM `IMidiBackend` for MIDI 1.0 endpoint discovery, input callbacks, short messages, and buffered SysEx.
+- A WPF monitor with selectable inputs, a MIDI Thru destination, per-channel state, a bounded event log, and All Notes Off.
 
-## Next implementation milestone
+## Running
 
-Implement an `IMidiBackend` with Windows MIDI Services or WinMM, then bind discovered input/output endpoints to the monitor and routing controls.
+Open `MIDImunger-W.sln` in Visual Studio 2022 or run:
+
+```powershell
+dotnet run --project src\MIDImunger.W
+```
+
+Use a virtual MIDI driver such as loopMIDI to test routing without hardware. This first backend uses the established WinMM MIDI 1.0 API; a Windows MIDI Services backend remains a future option for MIDI 2.0/UMP support.

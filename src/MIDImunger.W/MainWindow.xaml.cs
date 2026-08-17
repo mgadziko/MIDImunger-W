@@ -14,4 +14,27 @@ public partial class MainWindow : Window
     {
         ((MainWindowViewModel)DataContext).SendAllNotesOff();
     }
+
+    private async void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        await ((MainWindowViewModel)DataContext).RefreshEndpointsAsync();
+    }
+
+    private async void RefreshEndpoints_Click(object sender, RoutedEventArgs e)
+    {
+        await ((MainWindowViewModel)DataContext).RefreshEndpointsAsync();
+    }
+
+    private async void InputEnabled_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: MidiEndpointItem endpoint })
+        {
+            await ((MainWindowViewModel)DataContext).SetInputEnabledAsync(endpoint);
+        }
+    }
+
+    private async void Window_Closed(object? sender, EventArgs e)
+    {
+        await ((MainWindowViewModel)DataContext).DisposeAsync();
+    }
 }

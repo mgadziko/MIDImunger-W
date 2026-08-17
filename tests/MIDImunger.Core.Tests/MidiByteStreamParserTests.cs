@@ -49,4 +49,21 @@ public sealed class MidiByteStreamParserTests
         Assert.Equal(MidiMessageKind.SystemExclusive, message.Kind);
         Assert.Equal(new byte[] { 0xF0, 0x43, 0x10, 0x7F, 0xF7 }, message.Bytes);
     }
+
+    [Fact]
+    public void Monitor_MaintainsSeparateParserStateForEachInput()
+    {
+        var monitor = new MidiMonitor();
+        var messages = new List<MidiMessage>();
+        monitor.MessageReceived += (_, message) => messages.Add(message);
+
+        monitor.ProcessPacket([0x90, 60], sourceName: "Input A", sourceId: "a");
+        monitor.ProcessPacket([0x90, 70, 100], sourceName: "Input B", sourceId: "b");
+        monitor.ProcessPacket([100], sourceName: "Input A", sourceId: "a");
+
+        Assert.Collection(
+            messages,
+            fromB => Assert.Equal(new byte[] { 0x90, 70, 100 }, fromB.Bytes),
+            fromA => Assert.Equal(new byte[] { 0x90, 60, 100 }, fromA.Bytes));
+    }
 }
