@@ -11,7 +11,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
     private readonly IMidiBackend _backend = new WinMmMidiBackend();
     private readonly MidiMonitor _monitor = new();
     private readonly SynchronizationContext _uiContext;
-    private MidiEndpointItem? _selectedOutput;
     private string _status = "Discovering Windows MIDI devices...";
 
     public MainWindowViewModel()
@@ -30,19 +29,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
     public ObservableCollection<MidiEndpointItem> Outputs { get; } = [];
     public ObservableCollection<string> LogEntries { get; } = [];
 
-    public MidiEndpointItem? SelectedOutput
-    {
-        get => _selectedOutput;
-        set
-        {
-            _selectedOutput = value;
-            OnPropertyChanged();
-            Status = value is null
-                ? "Monitoring enabled inputs without MIDI Thru."
-                : $"Forwarding enabled inputs to {value.Name}.";
-        }
-    }
-
     public string Status
     {
         get => _status;
@@ -58,7 +44,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
     public async Task RefreshEndpointsAsync()
     {
         var activeInputs = Inputs.Where(input => input.IsEnabled).Select(input => input.Endpoint.Id).ToHashSet();
-        var selectedOutputId = SelectedOutput?.Endpoint.Id;
+        var activeOutputs = Outputs.Where(output => output.IsEnabled).Select(output => output.Endpoint.Id).ToHashSet();
         try
         {
             var inputs = await _backend.GetInputEndpointsAsync();
@@ -72,10 +58,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
             Outputs.Clear();
             foreach (var output in outputs)
             {
-                Outputs.Add(new MidiEndpointItem(output));
+                Outputs.Add(new MidiEndpointItem(output, activeOutputs.Contains(output.Id)));
             }
 
-            SelectedOutput = Outputs.FirstOrDefault(output => output.Endpoint.Id == selectedOutputId);
             Status = $"Found {Inputs.Count} input(s) and {Outputs.Count} output(s).";
         }
         catch (Win32Exception exception)
@@ -106,22 +91,32 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
         }
     }
 
+    public void SetOutputEnabled(MidiEndpointItem item)
+    {
+        Status = EnabledOutputs.Count == 0
+            ? "Monitoring enabled inputs without MIDI Thru."
+            : $"Forwarding enabled inputs to {EnabledOutputs.Count} MIDI Thru destination(s).";
+    }
+
     public async Task SendAllNotesOffAsync()
     {
-        if (SelectedOutput is null)
+        if (EnabledOutputs.Count == 0)
         {
-            Status = "Select a MIDI Thru destination before sending All Notes Off.";
+            Status = "Select at least one MIDI Thru destination before sending All Notes Off.";
             return;
         }
 
         try
         {
-            for (var channel = 0; channel < 16; channel++)
+            foreach (var output in EnabledOutputs)
             {
-                await _backend.SendAsync(SelectedOutput.Endpoint, new byte[] { (byte)(0xB0 | channel), 123, 0 });
+                for (var channel = 0; channel < 16; channel++)
+                {
+                    await _backend.SendAsync(output.Endpoint, new byte[] { (byte)(0xB0 | channel), 123, 0 });
+                }
             }
 
-            Status = $"Sent All Notes Off to {SelectedOutput.Name}.";
+            Status = $"Sent All Notes Off to {EnabledOutputs.Count} MIDI Thru destination(s).";
         }
         catch (Win32Exception exception)
         {
@@ -131,18 +126,26 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
 
     public async Task SendDxPlayAsync()
     {
-        if (SelectedOutput is null)
+        if (EnabledOutputs.Count == 0)
         {
-            Status = "Select a MIDI Thru destination before sending DX Play.";
+            Status = "Select at least one MIDI Thru destination before sending DX Play.";
             return;
         }
 
         try
         {
-            await _backend.SendAsync(SelectedOutput.Endpoint, Dx100Commands.CreatePlayPress());
+            foreach (var output in EnabledOutputs)
+            {
+                await _backend.SendAsync(output.Endpoint, Dx100Commands.CreatePlayPress());
+            }
+
             await Task.Delay(TimeSpan.FromMilliseconds(100));
-            await _backend.SendAsync(SelectedOutput.Endpoint, Dx100Commands.CreatePlayRelease());
-            Status = $"Sent DX Play recovery command to {SelectedOutput.Name}.";
+            foreach (var output in EnabledOutputs)
+            {
+                await _backend.SendAsync(output.Endpoint, Dx100Commands.CreatePlayRelease());
+            }
+
+            Status = $"Sent DX Play recovery command to {EnabledOutputs.Count} MIDI Thru destination(s).";
         }
         catch (Win32Exception exception)
         {
@@ -162,7 +165,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
         _uiContext.Post(async _ =>
         {
             _monitor.ProcessPacket(args.Bytes.Span, args.SourceName, args.SourceId);
-            if (SelectedOutput is { } output && IsNotSameEndpoint(args.SourceId, output.Endpoint.Id))
+            foreach (var output in EnabledOutputs.Where(output => IsNotSameEndpoint(args.SourceId, output.Endpoint.Id)))
             {
                 try
                 {
@@ -209,6 +212,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
 
     private static bool IsNotSameEndpoint(string inputId, string outputId) =>
         !string.Equals(inputId[3..], outputId[4..], StringComparison.Ordinal);
+
+    private List<MidiEndpointItem> EnabledOutputs => Outputs.Where(output => output.IsEnabled).ToList();
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

@@ -39,9 +39,14 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
             </GroupBox>
-            <GroupBox Grid.Column="1" Header="MIDI Thru destination" Margin="0,0,8,0">
-                <ComboBox ItemsSource="{Binding Outputs}" SelectedItem="{Binding SelectedOutput}"
-                          DisplayMemberPath="Name" Margin="6" />
+            <GroupBox Grid.Column="1" Header="MIDI Thru destinations" Margin="0,0,8,0">
+                <ListBox ItemsSource="{Binding Outputs}" BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding Name}" IsChecked="{Binding IsEnabled}" Click="OutputEnabled_Click" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </GroupBox>
             <StackPanel Grid.Column="2" VerticalAlignment="Center">
                 <Button Padding="14,5" HorizontalAlignment="Left" Click="RefreshEndpoints_Click" Content="Refresh MIDI devices" />

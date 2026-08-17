@@ -38,6 +38,14 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OutputEnabled_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: MidiEndpointItem endpoint })
+        {
+            ((MainWindowViewModel)DataContext).SetOutputEnabled(endpoint);
+        }
+    }
+
     private async void Window_Closed(object? sender, EventArgs e)
     {
         await ((MainWindowViewModel)DataContext).DisposeAsync();
