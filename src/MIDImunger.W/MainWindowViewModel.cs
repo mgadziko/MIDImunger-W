@@ -106,7 +106,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
         }
     }
 
-    public async void SendAllNotesOff()
+    public async Task SendAllNotesOffAsync()
     {
         if (SelectedOutput is null)
         {
@@ -126,6 +126,27 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
         catch (Win32Exception exception)
         {
             Status = $"Could not send All Notes Off: {exception.Message}";
+        }
+    }
+
+    public async Task SendDxPlayAsync()
+    {
+        if (SelectedOutput is null)
+        {
+            Status = "Select a MIDI Thru destination before sending DX Play.";
+            return;
+        }
+
+        try
+        {
+            await _backend.SendAsync(SelectedOutput.Endpoint, Dx100Commands.CreatePlayPress());
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+            await _backend.SendAsync(SelectedOutput.Endpoint, Dx100Commands.CreatePlayRelease());
+            Status = $"Sent DX Play recovery command to {SelectedOutput.Name}.";
+        }
+        catch (Win32Exception exception)
+        {
+            Status = $"Could not send DX Play: {exception.Message}";
         }
     }
 

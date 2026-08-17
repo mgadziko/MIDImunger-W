@@ -10,9 +10,14 @@ public partial class MainWindow : Window
         DataContext = new MainWindowViewModel();
     }
 
-    private void AllNotesOff_Click(object sender, RoutedEventArgs e)
+    private async void AllNotesOff_Click(object sender, RoutedEventArgs e)
     {
-        ((MainWindowViewModel)DataContext).SendAllNotesOff();
+        await ((MainWindowViewModel)DataContext).SendAllNotesOffAsync();
+    }
+
+    private async void DxPlay_Click(object sender, RoutedEventArgs e)
+    {
+        await ((MainWindowViewModel)DataContext).SendDxPlayAsync();
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)

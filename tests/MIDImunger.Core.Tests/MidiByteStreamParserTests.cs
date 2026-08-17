@@ -66,4 +66,15 @@ public sealed class MidiByteStreamParserTests
             fromB => Assert.Equal(new byte[] { 0x90, 70, 100 }, fromB.Bytes),
             fromA => Assert.Equal(new byte[] { 0x90, 60, 100 }, fromA.Bytes));
     }
+
+    [Fact]
+    public void Dx100Commands_CreateExpectedPlayPressAndRelease()
+    {
+        Assert.Equal(
+            new byte[] { 0xF0, 0x43, 0x10, 0x08, 27, 127, 0xF7 },
+            Dx100Commands.CreatePlayPress());
+        Assert.Equal(
+            new byte[] { 0xF0, 0x43, 0x10, 0x08, 27, 0, 0xF7 },
+            Dx100Commands.CreatePlayRelease());
+    }
 }

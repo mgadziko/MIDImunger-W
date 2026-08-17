@@ -18,7 +18,10 @@
         <DockPanel Grid.Row="0" Margin="0,0,0,12">
             <TextBlock FontSize="24" FontWeight="SemiBold" Text="MIDImunger-W" />
             <TextBlock Margin="16,7,0,0" Foreground="DimGray" Text="MIDI 1.0 monitor and router" />
-            <Button DockPanel.Dock="Right" Padding="14,5" Click="AllNotesOff_Click" Content="All Notes Off" />
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Padding="14,5" Margin="0,0,8,0" Click="DxPlay_Click" Content="DX Play" />
+                <Button Padding="14,5" Click="AllNotesOff_Click" Content="All Notes Off" />
+            </StackPanel>
         </DockPanel>
 
         <Grid Grid.Row="1" Margin="0,0,0,12">

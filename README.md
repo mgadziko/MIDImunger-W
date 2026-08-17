@@ -6,7 +6,7 @@ Windows MIDI 1.0 monitoring and routing application, initially targeting .NET 8 
 
 - A platform-neutral MIDI byte-stream parser handling channel messages, running status, system common, realtime traffic, and fragmented SysEx.
 - A WinMM `IMidiBackend` for MIDI 1.0 endpoint discovery, input callbacks, short messages, and buffered SysEx.
-- A WPF monitor with selectable inputs, a MIDI Thru destination, per-channel state, a bounded event log, and All Notes Off.
+- A WPF monitor with selectable inputs, a MIDI Thru destination, per-channel state, a bounded event log, All Notes Off, and the Yamaha DX100 `DX Play` recovery command.
 
 ## Running
 
