@@ -3,10 +3,10 @@ using System.Text.Json;
 
 namespace MIDImunger.W;
 
-public sealed record WindowPlacementSettings(double Left, double Top, double Height, bool IsMaximized);
+public sealed record WindowPlacementSettings(double Left, double Top, double Width, double Height, bool IsMaximized);
 
 /// <summary>
-/// Persists the main window's position, height, and maximized state across app launches.
+/// Persists the main window's position, size, and maximized state across app launches.
 /// </summary>
 public static class WindowSettingsService
 {

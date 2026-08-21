@@ -267,7 +267,15 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
             var row = Channels[channel - 1];
             if (!VisibleChannels.Contains(row))
             {
-                VisibleChannels.Add(row);
+                var insertIndex = VisibleChannels.ToList().FindIndex(existing => existing.Number > row.Number);
+                if (insertIndex >= 0)
+                {
+                    VisibleChannels.Insert(insertIndex, row);
+                }
+                else
+                {
+                    VisibleChannels.Add(row);
+                }
             }
 
             row.HasReceivedData = true;
@@ -295,7 +303,16 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
                             ControlChanges.Skip(rowIndex * 8).Take(8).ToArray(),
                             false,
                             rowIndex);
-                        ControlChangeRows.Add(ccRow);
+
+                        var insertIndex = ControlChangeRows.ToList().FindIndex(existing => existing.RowIndex > rowIndex);
+                        if (insertIndex >= 0)
+                        {
+                            ControlChangeRows.Insert(insertIndex, ccRow);
+                        }
+                        else
+                        {
+                            ControlChangeRows.Add(ccRow);
+                        }
                     }
 
                     ccRow.RefreshVisibility();

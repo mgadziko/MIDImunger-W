@@ -65,7 +65,7 @@ public partial class MainWindow : Window
     {
         var isMaximized = WindowState == WindowState.Maximized;
         var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
-        WindowSettingsService.Save(new WindowPlacementSettings(bounds.Left, bounds.Top, bounds.Height, isMaximized));
+        WindowSettingsService.Save(new WindowPlacementSettings(bounds.Left, bounds.Top, bounds.Width, bounds.Height, isMaximized));
     }
 
     private void Window_SourceInitialized(object? sender, EventArgs e)
@@ -81,16 +81,24 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (IsOnScreen(settings.Left, settings.Top, Width, settings.Height))
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        if (IsOnScreen(settings.Left, settings.Top, settings.Width > 0 ? settings.Width : Width, settings.Height > 0 ? settings.Height : Height))
         {
-            WindowStartupLocation = WindowStartupLocation.Manual;
             Left = settings.Left;
             Top = settings.Top;
         }
 
-        if (!settings.IsMaximized && settings.Height > 0)
+        if (!settings.IsMaximized)
         {
-            Height = settings.Height;
+            if (settings.Width > 0)
+            {
+                Width = settings.Width;
+            }
+
+            if (settings.Height > 0)
+            {
+                Height = settings.Height;
+            }
         }
 
         if (settings.IsMaximized)
