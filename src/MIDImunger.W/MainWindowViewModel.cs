@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using MIDImunger.Core;
 using System.Windows;
@@ -79,7 +80,36 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    public void SetDebugStatus(string status)
+    {
+        Status = status;
+        Debug.WriteLine($"[MIDImunger-W] {status}");
+    }
+
+    private volatile bool _refreshInProgress;
+
     public async Task RefreshEndpointsAsync()
+    {
+        if (_refreshInProgress)
+        {
+            Debug.WriteLine("[MIDImunger-W] RefreshEndpointsAsync: skipped — refresh already in progress.");
+            return;
+        }
+
+        _refreshInProgress = true;
+        try
+        {
+            SetDebugStatus("Enumerating MIDI devices...");
+            Debug.WriteLine("[MIDImunger-W] RefreshEndpointsAsync: starting device enumeration.");
+            await RefreshEndpointsCoreAsync();
+        }
+        finally
+        {
+            _refreshInProgress = false;
+        }
+    }
+
+    private async Task RefreshEndpointsCoreAsync()
     {
         var activeInputNames = Inputs.Where(input => input.IsEnabled).Select(input => input.Name).ToHashSet();
         var activeOutputNames = Outputs.Where(output => output.IsEnabled).Select(output => output.Name).ToHashSet();
@@ -97,8 +127,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
 
         try
         {
+            SetDebugStatus("Enumerating MIDI inputs...");
             var inputs = await _backend.GetInputEndpointsAsync();
+            SetDebugStatus("Enumerating MIDI outputs...");
             var outputs = await _backend.GetOutputEndpointsAsync();
+            Debug.WriteLine($"[MIDImunger-W] Enumerated {inputs.Count} input(s) and {outputs.Count} output(s).");
+
             Inputs.Clear();
             foreach (var input in inputs)
             {
@@ -114,27 +148,38 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
             RefreshEnabledOutputSnapshot();
             RebuildEndpointRows();
 
-            foreach (var input in Inputs.Where(input => input.IsEnabled))
+            foreach (var input in Inputs.Where(input => input.IsEnabled).ToList())
             {
                 try
                 {
+                    Debug.WriteLine($"[MIDImunger-W] Opening enabled input: {input.Name} ({input.Endpoint.Id}).");
+                    SetDebugStatus($"Startup: opening enabled input {input.Name}...");
                     await _backend.OpenInputAsync(input.Endpoint);
                 }
                 catch (Win32Exception exception)
                 {
                     input.IsEnabled = false;
                     Status = $"Could not restore input {input.Name}: {exception.Message}";
+                    Debug.WriteLine($"[MIDImunger-W] Failed to open input {input.Name}: {exception.Message}");
                 }
             }
 
             if (!Inputs.Any(input => input.IsEnabled))
             {
-                Status = "Waiting for MIDI...";
+                if (inputs.Count == 0 && outputs.Count == 0)
+                {
+                    SetDebugStatus("MIDI enumeration timed out or no devices found.");
+                }
+                else
+                {
+                    SetDebugStatus("Waiting for MIDI input...");
+                }
             }
         }
         catch (Win32Exception exception)
         {
             Status = $"Could not enumerate MIDI devices: {exception.Message}";
+            Debug.WriteLine($"[MIDImunger-W] Failed to enumerate MIDI devices: {exception.Message}");
         }
     }
 
@@ -144,12 +189,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
         {
             if (item.IsEnabled)
             {
-                await _backend.OpenInputAsync(item.Endpoint);
+                await Task.Run(() => _backend.OpenInputAsync(item.Endpoint));
                 Status = $"Listening to {item.Name}.";
             }
             else
             {
-                await _backend.CloseInputAsync(item.Endpoint.Id);
+                await Task.Run(() => _backend.CloseInputAsync(item.Endpoint.Id));
                 Status = $"Stopped listening to {item.Name}.";
             }
 
@@ -185,7 +230,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
             {
                 for (var channel = 0; channel < 16; channel++)
                 {
-                    await _backend.SendAsync(output.Endpoint, new byte[] { (byte)(0xB0 | channel), 123, 0 });
+                    await Task.Run(() => _backend.SendAsync(output.Endpoint, new byte[] { (byte)(0xB0 | channel), 123, 0 }));
                 }
             }
 
@@ -209,13 +254,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
         {
             foreach (var output in EnabledOutputs)
             {
-                await _backend.SendAsync(output.Endpoint, Dx100Commands.CreatePlayPress());
+                await Task.Run(() => _backend.SendAsync(output.Endpoint, Dx100Commands.CreatePlayPress()));
             }
 
             await Task.Delay(TimeSpan.FromMilliseconds(100));
             foreach (var output in EnabledOutputs)
             {
-                await _backend.SendAsync(output.Endpoint, Dx100Commands.CreatePlayRelease());
+                await Task.Run(() => _backend.SendAsync(output.Endpoint, Dx100Commands.CreatePlayRelease()));
             }
 
             Status = $"Sent DX Play recovery command to {EnabledOutputs.Count} MIDI Thru destination(s).";
@@ -355,6 +400,21 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
             {
                 await _backend.SendAsync(output.Endpoint, args.Bytes).ConfigureAwait(false);
             }
+            catch (Win32Exception exception) when (exception.NativeErrorCode == 6)
+            {
+                // MMSYSERR_INVALHANDLE — the output device handle was invalidated (device
+                // disconnected, driver crashed, or device was never valid). Disable it so
+                // we stop trying to send to it on every MIDI packet.
+                _uiContext.Post(_ =>
+                {
+                    output.IsEnabled = false;
+                    RefreshEnabledOutputSnapshot();
+                    _backend.CloseOutput(output.Endpoint);
+                    Status = $"Output '{output.Name}' disconnected (invalid handle) — disabled.";
+                    Debug.WriteLine($"[MIDImunger-W] Auto-disabled output '{output.Name}' after MMSYSERR_INVALHANDLE.");
+                    SavePreferences();
+                }, null);
+            }
             catch (Win32Exception exception)
             {
                 _uiContext.Post(_ => Status = $"Could not forward MIDI to {output.Name}: {exception.Message}", null);
@@ -430,7 +490,7 @@ public sealed class ControlChangeDisplay(int controllerNumber) : INotifyProperty
 
     public int ControllerNumber { get; } = controllerNumber;
     public bool HasValue => _hasValue;
-    public string ControllerLabel => $"CC{ControllerNumber}";
+    public string ControllerLabel => $"CC{ControllerNumber:D2}";
     public string ValueDisplay => _hasValue ? _value.ToString("D3") : string.Empty;
     public string ChannelDisplay => _hasValue ? _channel.ToString("D2") : string.Empty;
 

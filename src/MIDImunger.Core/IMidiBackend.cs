@@ -11,6 +11,7 @@ public interface IMidiBackend : IAsyncDisposable
     Task<IReadOnlyList<MidiEndpoint>> GetOutputEndpointsAsync(CancellationToken cancellationToken = default);
     Task OpenInputAsync(MidiEndpoint endpoint, CancellationToken cancellationToken = default);
     Task CloseInputAsync(string endpointId, CancellationToken cancellationToken = default);
+    void CloseOutput(MidiEndpoint endpoint);
     Task SendAsync(MidiEndpoint endpoint, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken = default);
 }
 

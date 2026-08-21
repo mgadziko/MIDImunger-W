@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace MIDImunger.W;
 
@@ -8,7 +10,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = new MainWindowViewModel();
+
+        var viewModel = new MainWindowViewModel();
+        viewModel.SetDebugStatus("Startup: creating UI model...");
+        DataContext = viewModel;
+
         ApplyWindowPlacement();
     }
 
@@ -27,9 +33,17 @@ public partial class MainWindow : Window
         ((MainWindowViewModel)DataContext).ClearControlChanges();
     }
 
-    private async void Window_Loaded(object sender, RoutedEventArgs e)
+    private void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        await ((MainWindowViewModel)DataContext).RefreshEndpointsAsync();
+        var viewModel = (MainWindowViewModel)DataContext;
+        viewModel.SetDebugStatus("Startup: scheduling MIDI device refresh...");
+        Debug.WriteLine("[MIDImunger-W] Window_Loaded: scheduling RefreshEndpointsAsync.");
+
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        {
+            Debug.WriteLine("[MIDImunger-W] Background startup: RefreshEndpointsAsync begins.");
+            _ = viewModel.RefreshEndpointsAsync();
+        }));
     }
 
     public void ApplySystemTheme() =>

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using MIDImunger.Core;
 
@@ -28,32 +29,72 @@ public sealed class WinMmMidiBackend : IMidiBackend
     public event EventHandler<MidiPacketReceivedEventArgs>? PacketReceived;
     public event EventHandler<MidiBackendErrorEventArgs>? ErrorOccurred;
 
+    // Each WinMM enumeration/open call gets its own dedicated thread with a hard timeout.
+    // Thread-pool threads cannot be forcibly aborted in .NET 8; using a dedicated Thread
+    // means a hung native call leaks at most one thread rather than blocking the pool.
+    private static readonly TimeSpan NativeCallTimeout = TimeSpan.FromSeconds(5);
+
+    private static Task<T> RunOnDedicatedThread<T>(Func<T> work)
+    {
+        var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var thread = new Thread(() =>
+        {
+            try { tcs.TrySetResult(work()); }
+            catch (Exception ex) { tcs.TrySetException(ex); }
+        })
+        { IsBackground = true };
+        thread.Start();
+        return tcs.Task;
+    }
+
+    private static async Task<T> WithNativeTimeout<T>(Func<T> work, T fallback, string operationName)
+    {
+        var workerTask = RunOnDedicatedThread(work);
+        if (await Task.WhenAny(workerTask, Task.Delay(NativeCallTimeout)).ConfigureAwait(false) == workerTask)
+        {
+            return await workerTask.ConfigureAwait(false);
+        }
+
+        Debug.WriteLine($"[MIDImunger-W] WinMM '{operationName}' timed out after {NativeCallTimeout.TotalSeconds}s; using fallback.");
+        return fallback;
+    }
+
     public Task<IReadOnlyList<MidiEndpoint>> GetInputEndpointsAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         cancellationToken.ThrowIfCancellationRequested();
-        var endpoints = new List<MidiEndpoint>();
-        for (uint deviceId = 0; deviceId < midiInGetNumDevs(); deviceId++)
-        {
-            ThrowIfError(midiInGetDevCaps(deviceId, out var capabilities, (uint)Marshal.SizeOf<MidiInCaps>()));
-            endpoints.Add(new MidiEndpoint($"in:{deviceId}", capabilities.Name));
-        }
-
-        return Task.FromResult<IReadOnlyList<MidiEndpoint>>(endpoints);
+        return WithNativeTimeout<IReadOnlyList<MidiEndpoint>>(
+            () =>
+            {
+                var endpoints = new List<MidiEndpoint>();
+                for (uint deviceId = 0; deviceId < midiInGetNumDevs(); deviceId++)
+                {
+                    ThrowIfError(midiInGetDevCaps(deviceId, out var capabilities, (uint)Marshal.SizeOf<MidiInCaps>()));
+                    endpoints.Add(new MidiEndpoint($"in:{deviceId}", capabilities.Name));
+                }
+                return endpoints;
+            },
+            fallback: [],
+            operationName: "GetInputEndpoints");
     }
 
     public Task<IReadOnlyList<MidiEndpoint>> GetOutputEndpointsAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         cancellationToken.ThrowIfCancellationRequested();
-        var endpoints = new List<MidiEndpoint>();
-        for (uint deviceId = 0; deviceId < midiOutGetNumDevs(); deviceId++)
-        {
-            ThrowIfError(midiOutGetDevCaps(deviceId, out var capabilities, (uint)Marshal.SizeOf<MidiOutCaps>()));
-            endpoints.Add(new MidiEndpoint($"out:{deviceId}", capabilities.Name));
-        }
-
-        return Task.FromResult<IReadOnlyList<MidiEndpoint>>(endpoints);
+        return WithNativeTimeout<IReadOnlyList<MidiEndpoint>>(
+            () =>
+            {
+                var endpoints = new List<MidiEndpoint>();
+                for (uint deviceId = 0; deviceId < midiOutGetNumDevs(); deviceId++)
+                {
+                    ThrowIfError(midiOutGetDevCaps(deviceId, out var capabilities, (uint)Marshal.SizeOf<MidiOutCaps>()));
+                    endpoints.Add(new MidiEndpoint($"out:{deviceId}", capabilities.Name));
+                }
+                return endpoints;
+            },
+            fallback: [],
+            operationName: "GetOutputEndpoints");
     }
 
     public Task OpenInputAsync(MidiEndpoint endpoint, CancellationToken cancellationToken = default)
@@ -65,31 +106,42 @@ public sealed class WinMmMidiBackend : IMidiBackend
             return Task.CompletedTask;
         }
 
-        var deviceId = ParseDeviceId(endpoint, "in");
-        ThrowIfError(midiInOpen(out var handle, deviceId, _inputCallback, IntPtr.Zero, CallbackFunction));
-        var input = new OpenInput(endpoint, handle);
-        try
-        {
-            for (var index = 0; index < SysExBufferCount; index++)
+        return WithNativeTimeout<bool>(
+            () =>
             {
-                input.Buffers.Add(PrepareSysExBuffer(handle));
-            }
+                if (_openInputs.ContainsKey(endpoint.Id))
+                {
+                    return true;
+                }
 
-            if (!_openInputs.TryAdd(endpoint.Id, input))
-            {
-                throw new InvalidOperationException($"Input endpoint '{endpoint.Name}' is already open.");
-            }
+                var deviceId = ParseDeviceId(endpoint, "in");
+                ThrowIfError(midiInOpen(out var handle, deviceId, _inputCallback, IntPtr.Zero, CallbackFunction));
+                var input = new OpenInput(endpoint, handle);
+                try
+                {
+                    for (var index = 0; index < SysExBufferCount; index++)
+                    {
+                        input.Buffers.Add(PrepareSysExBuffer(handle));
+                    }
 
-            ThrowIfError(midiInStart(handle));
-            return Task.CompletedTask;
-        }
-        catch
-        {
-            _openInputs.TryRemove(endpoint.Id, out _);
-            input.Dispose();
-            midiInClose(handle);
-            throw;
-        }
+                    if (!_openInputs.TryAdd(endpoint.Id, input))
+                    {
+                        throw new InvalidOperationException($"Input endpoint '{endpoint.Name}' is already open.");
+                    }
+
+                    ThrowIfError(midiInStart(handle));
+                    return true;
+                }
+                catch
+                {
+                    _openInputs.TryRemove(endpoint.Id, out _);
+                    input.Dispose();
+                    midiInClose(handle);
+                    throw;
+                }
+            },
+            fallback: false,
+            operationName: $"OpenInput({endpoint.Name})").ContinueWith(_ => { }, TaskContinuationOptions.ExecuteSynchronously);
     }
 
     public Task CloseInputAsync(string endpointId, CancellationToken cancellationToken = default)
@@ -116,13 +168,20 @@ public sealed class WinMmMidiBackend : IMidiBackend
             return;
         }
 
-        var handle = GetOrOpenOutput(ParseDeviceId(endpoint, "out"));
+        var deviceId = ParseDeviceId(endpoint, "out");
+        var handle = GetOrOpenOutput(deviceId);
         if (bytes.Length <= 3 && bytes.Span[0] != 0xF0)
         {
             uint packed = bytes.Span[0];
             if (bytes.Length > 1) packed |= (uint)bytes.Span[1] << 8;
             if (bytes.Length > 2) packed |= (uint)bytes.Span[2] << 16;
-            ThrowIfError(midiOutShortMsg(handle, packed));
+            var result = midiOutShortMsg(handle, packed);
+            if (result == MmSysErrInvalHandle)
+            {
+                // Evict the dead handle so it doesn't contaminate future calls.
+                _openOutputs.Remove(deviceId);
+            }
+            ThrowIfError(result);
             return;
         }
 
@@ -218,6 +277,8 @@ public sealed class WinMmMidiBackend : IMidiBackend
         }
     }
 
+    private const uint MmSysErrInvalHandle = 6;
+
     private IntPtr GetOrOpenOutput(uint deviceId)
     {
         if (_openOutputs.TryGetValue(deviceId, out var handle))
@@ -228,6 +289,19 @@ public sealed class WinMmMidiBackend : IMidiBackend
         ThrowIfError(midiOutOpen(out handle, deviceId, IntPtr.Zero, IntPtr.Zero, 0));
         _openOutputs.Add(deviceId, handle);
         return handle;
+    }
+
+    public void CloseOutput(MidiEndpoint endpoint)
+    {
+        var deviceId = ParseDeviceId(endpoint, "out");
+        if (!_openOutputs.TryGetValue(deviceId, out var handle))
+        {
+            return;
+        }
+
+        _openOutputs.Remove(deviceId);
+        midiOutReset(handle);
+        midiOutClose(handle);
     }
 
     private static SysExBuffer PrepareSysExBuffer(IntPtr inputHandle)
