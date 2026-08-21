@@ -271,6 +271,48 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IAsyncDisposab
         }
     }
 
+    public async Task SendCcAsync(string channelText, string ccText, string valueText)
+    {
+        if (EnabledOutputs.Count == 0)
+        {
+            Status = "Select at least one MIDI Thru destination before sending.";
+            return;
+        }
+
+        if (!int.TryParse(channelText, out var channel) || channel < 1 || channel > 16)
+        {
+            Status = "Channel must be a number between 1 and 16.";
+            return;
+        }
+
+        if (!int.TryParse(ccText, out var cc) || cc < 0 || cc > 127)
+        {
+            Status = "CC# must be a number between 0 and 127.";
+            return;
+        }
+
+        if (!int.TryParse(valueText, out var value) || value < 0 || value > 127)
+        {
+            Status = "Value must be a number between 0 and 127.";
+            return;
+        }
+
+        try
+        {
+            var message = new byte[] { (byte)(0xB0 | (channel - 1)), (byte)cc, (byte)value };
+            foreach (var output in EnabledOutputs)
+            {
+                await Task.Run(() => _backend.SendAsync(output.Endpoint, message));
+            }
+
+            Status = $"Sent CC{cc:D2} value {value} on channel {channel} to {EnabledOutputs.Count} destination(s).";
+        }
+        catch (Win32Exception exception)
+        {
+            Status = $"Could not send CC: {exception.Message}";
+        }
+    }
+
     public void ClearControlChanges()
     {
         foreach (var controlChange in ControlChanges)

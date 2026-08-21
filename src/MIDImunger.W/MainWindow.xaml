@@ -97,16 +97,31 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </GroupBox>
-                <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                        <Button Padding="14,5" HorizontalAlignment="Left" Click="RefreshEndpoints_Click" Content="Refresh MIDI Devices" />
-                        <Button Padding="14,5" Margin="8,0,0,0" Click="DxPlay_Click" Content="DX Play" />
-                        <Button Padding="14,5" Margin="8,0,0,0" Click="AllNotesOff_Click" Content="All Notes Off" />
-                        <Button Padding="14,5" Margin="8,0,0,0" Click="ClearCc_Click" Content="Clear CC" />
+                <GroupBox Grid.Column="2" Header="MIDI Send" VerticalAlignment="Top">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Padding="14,5" HorizontalAlignment="Left" Click="RefreshEndpoints_Click" Content="Refresh MIDI Devices" />
+                            <Button Padding="14,5" Margin="8,0,0,0" Click="DxPlay_Click" Content="DX Play" />
+                            <Button Padding="14,5" Margin="8,0,0,0" Click="AllNotesOff_Click" Content="All Notes Off" />
+                            <Button Padding="14,5" Margin="8,0,0,0" Click="ClearCc_Click" Content="Clear CC" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Channel" Foreground="{DynamicResource SubtleForegroundBrush}" FontSize="11" Margin="0,0,0,2" />
+                                <TextBox x:Name="SendChannelBox" Width="60" Padding="4,3" Text="1" />
+                            </StackPanel>
+                            <StackPanel Margin="8,0,0,0">
+                                <TextBlock Text="CC#" Foreground="{DynamicResource SubtleForegroundBrush}" FontSize="11" Margin="0,0,0,2" />
+                                <TextBox x:Name="SendCcBox" Width="60" Padding="4,3" Text="122" />
+                            </StackPanel>
+                            <StackPanel Margin="8,0,0,0">
+                                <TextBlock Text="Value" Foreground="{DynamicResource SubtleForegroundBrush}" FontSize="11" Margin="0,0,0,2" />
+                                <TextBox x:Name="SendValueBox" Width="60" Padding="4,3" Text="127" />
+                            </StackPanel>
+                            <Button Padding="14,5" Margin="8,17,0,0" Click="SendCc_Click" Content="Send" />
+                        </StackPanel>
                     </StackPanel>
-                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
-                               Foreground="{DynamicResource SubtleForegroundBrush}" Text="Messages from enabled inputs are forwarded immediately to the selected destination." />
-                </StackPanel>
+                </GroupBox>
             </Grid>
 
             <GroupBox Grid.Row="2" Header="Channel Inspector" Margin="0,0,0,12">

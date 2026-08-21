@@ -49,6 +49,11 @@ public partial class MainWindow : Window
     public void ApplySystemTheme() =>
         ThemeResources.ApplyWindowTheme(this);
 
+    private async void SendCc_Click(object sender, RoutedEventArgs e)
+    {
+        await ((MainWindowViewModel)DataContext).SendCcAsync(SendChannelBox.Text, SendCcBox.Text, SendValueBox.Text);
+    }
+
     private async void RefreshEndpoints_Click(object sender, RoutedEventArgs e)
     {
         await ((MainWindowViewModel)DataContext).RefreshEndpointsAsync();
