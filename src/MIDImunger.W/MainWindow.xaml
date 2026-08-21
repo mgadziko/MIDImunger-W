@@ -3,74 +3,209 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:primitives="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
         mc:Ignorable="d"
-        Title="MIDImunger-W" Height="700" Width="1080" MinHeight="500" MinWidth="780"
-        Loaded="Window_Loaded" Closed="Window_Closed">
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="180" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+        Title="MIDImunger-W" Height="980" Width="1080" MinHeight="760" MinWidth="780"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource ControlForegroundBrush}"
+        Loaded="Window_Loaded" SourceInitialized="Window_SourceInitialized" Closing="Window_Closing" Closed="Window_Closed">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid Margin="16" Background="{DynamicResource WindowBackgroundBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <DockPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock FontSize="24" FontWeight="SemiBold" Text="MIDImunger-W" />
-            <TextBlock Margin="16,7,0,0" Foreground="DimGray" Text="MIDI 1.0 monitor and router" />
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button Padding="14,5" Margin="0,0,8,0" Click="DxPlay_Click" Content="DX Play" />
-                <Button Padding="14,5" Click="AllNotesOff_Click" Content="All Notes Off" />
-            </StackPanel>
-        </DockPanel>
+            <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource HeadingForegroundBrush}" Text="MIDImunger-W" />
+                <TextBlock Margin="16,7,0,0" Foreground="{DynamicResource SubtleForegroundBrush}" Text="MIDI 1.0 monitor and router" />
+            </DockPanel>
 
-        <Grid Grid.Row="1" Margin="0,0,0,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="2*" />
-            </Grid.ColumnDefinitions>
-            <GroupBox Header="Inputs" Margin="0,0,8,0">
-                <ListBox ItemsSource="{Binding Inputs}" BorderThickness="0">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <CheckBox Content="{Binding Name}" IsChecked="{Binding IsEnabled}" Click="InputEnabled_Click" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+            <Grid Grid.Row="1" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
+                <GroupBox Header="Inputs" Margin="0,0,8,0">
+                    <ListBox ItemsSource="{Binding EndpointRows}" BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <ContentControl Content="{Binding Input}">
+                                    <ContentControl.Style>
+                                        <Style TargetType="ContentControl">
+                                            <Setter Property="ContentTemplate">
+                                                <Setter.Value>
+                                                    <DataTemplate>
+                                                        <CheckBox Height="22" VerticalContentAlignment="Center"
+                                                                  Content="{Binding Name}" IsChecked="{Binding IsEnabled}" Click="InputEnabled_Click" />
+                                                    </DataTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <Trigger Property="Content" Value="{x:Null}">
+                                                    <Setter Property="ContentTemplate">
+                                                        <Setter.Value>
+                                                            <DataTemplate>
+                                                                <Border Height="22" />
+                                                            </DataTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentControl.Style>
+                                </ContentControl>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </GroupBox>
+                <GroupBox Grid.Column="1" Header="Thru Destinations" Margin="0,0,8,0">
+                    <ListBox ItemsSource="{Binding EndpointRows}" BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <ContentControl Content="{Binding Output}">
+                                    <ContentControl.Style>
+                                        <Style TargetType="ContentControl">
+                                            <Setter Property="ContentTemplate">
+                                                <Setter.Value>
+                                                    <DataTemplate>
+                                                        <CheckBox Height="22" VerticalContentAlignment="Center"
+                                                                  Content="{Binding Name}" IsChecked="{Binding IsEnabled}" Click="OutputEnabled_Click" />
+                                                    </DataTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <Trigger Property="Content" Value="{x:Null}">
+                                                    <Setter Property="ContentTemplate">
+                                                        <Setter.Value>
+                                                            <DataTemplate>
+                                                                <Border Height="22" />
+                                                            </DataTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentControl.Style>
+                                </ContentControl>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </GroupBox>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                        <Button Padding="14,5" HorizontalAlignment="Left" Click="RefreshEndpoints_Click" Content="Refresh MIDI Devices" />
+                        <Button Padding="14,5" Margin="8,0,0,0" Click="DxPlay_Click" Content="DX Play" />
+                        <Button Padding="14,5" Margin="8,0,0,0" Click="AllNotesOff_Click" Content="All Notes Off" />
+                        <Button Padding="14,5" Margin="8,0,0,0" Click="ClearCc_Click" Content="Clear CC" />
+                    </StackPanel>
+                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
+                               Foreground="{DynamicResource SubtleForegroundBrush}" Text="Messages from enabled inputs are forwarded immediately to the selected destination." />
+                </StackPanel>
+            </Grid>
+
+            <GroupBox Grid.Row="2" Header="Channel Inspector" Margin="0,0,0,12">
+                <DataGrid RowHeight="24" ColumnHeaderHeight="28"
+                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          ItemsSource="{Binding VisibleChannels}" IsReadOnly="True" AutoGenerateColumns="False"
+                          CanUserAddRows="False" HeadersVisibility="Column" AlternationCount="2">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Channel" Binding="{Binding Number}" Width="80" />
+                        <DataGridTextColumn Header="Last Message" Binding="{Binding LastMessage}" Width="*" />
+                        <DataGridTextColumn Header="Note" Binding="{Binding LastNote}" Width="90" />
+                        <DataGridTextColumn Header="Velocity" Binding="{Binding LastVelocity}" Width="90" />
+                        <DataGridTextColumn Header="Program" Binding="{Binding LastProgram}" Width="90" />
+                        <DataGridTextColumn Header="Controller" Binding="{Binding LastController}" Width="120" />
+                    </DataGrid.Columns>
+                </DataGrid>
             </GroupBox>
-            <GroupBox Grid.Column="1" Header="MIDI Thru destinations" Margin="0,0,8,0">
-                <ListBox ItemsSource="{Binding Outputs}" BorderThickness="0">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <CheckBox Content="{Binding Name}" IsChecked="{Binding IsEnabled}" Click="OutputEnabled_Click" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+
+            <GroupBox Grid.Row="3" Header="Message Inspector" Margin="0,12,0,12">
+                <DockPanel>
+                    <CheckBox DockPanel.Dock="Top" Margin="0,0,0,8" Content="Ignore Active Sensing"
+                              IsChecked="{Binding IgnoreActiveSensing}" />
+                    <ListBox Height="220" ItemsSource="{Binding LogEntries}" BorderThickness="0" />
+                </DockPanel>
             </GroupBox>
-            <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                <Button Padding="14,5" HorizontalAlignment="Left" Click="RefreshEndpoints_Click" Content="Refresh MIDI devices" />
-                <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
-                           Foreground="DimGray" Text="Messages from enabled inputs are forwarded immediately to the selected destination." />
-            </StackPanel>
+
+            <GroupBox Grid.Row="4" Header="Control Change Inspector" Margin="0,0,0,12">
+                <ItemsControl ItemsSource="{Binding ControlChangeRows}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,0,8" Visibility="{Binding Visibility}">
+                                <ItemsControl ItemsSource="{Binding Displays}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <primitives:UniformGrid Columns="8" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Margin="0,0,8,0" Padding="6"
+                                                    Background="{DynamicResource SurfaceBackgroundBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="2">
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                        <Border Width="58" Padding="6,4"
+                                                                Background="{DynamicResource LedBackgroundBrush}"
+                                                                BorderBrush="{DynamicResource LedBorderBrush}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="2">
+                                                            <TextBlock HorizontalAlignment="Center"
+                                                                       FontFamily="Consolas"
+                                                                       FontSize="18"
+                                                                       Foreground="{DynamicResource LedForegroundBrush}"
+                                                                       Text="{Binding ValueDisplay}" />
+                                                        </Border>
+                                                        <Border Width="40" Margin="6,0,0,0" Padding="6,4"
+                                                                Background="{DynamicResource LedBackgroundBrush}"
+                                                                BorderBrush="{DynamicResource LedBorderBrush}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="2">
+                                                            <TextBlock HorizontalAlignment="Center"
+                                                                       FontFamily="Consolas"
+                                                                       FontSize="18"
+                                                                       Foreground="{DynamicResource LedForegroundBrush}"
+                                                                       Text="{Binding ChannelDisplay}" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
+                                                        <TextBlock Width="58"
+                                                                   HorizontalAlignment="Center"
+                                                                   TextAlignment="Center"
+                                                                   Foreground="{DynamicResource SubtleForegroundBrush}"
+                                                                   Text="{Binding ControllerLabel}" />
+                                                        <TextBlock Width="40" Margin="6,0,0,0"
+                                                                   HorizontalAlignment="Center"
+                                                                   TextAlignment="Center"
+                                                                   Foreground="{DynamicResource SubtleForegroundBrush}"
+                                                                   Text="Ch" />
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </GroupBox>
+
+            <TextBlock Grid.Row="5" Foreground="{DynamicResource SubtleForegroundBrush}" Text="{Binding Status}" />
         </Grid>
-
-        <DataGrid Grid.Row="2" ItemsSource="{Binding Channels}" IsReadOnly="True" AutoGenerateColumns="False"
-                  CanUserAddRows="False" HeadersVisibility="Column">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Channel" Binding="{Binding Number}" Width="80" />
-                <DataGridTextColumn Header="Last Message" Binding="{Binding LastMessage}" Width="*" />
-                <DataGridTextColumn Header="Note" Binding="{Binding LastNote}" Width="90" />
-                <DataGridTextColumn Header="Velocity" Binding="{Binding LastVelocity}" Width="90" />
-                <DataGridTextColumn Header="Program" Binding="{Binding LastProgram}" Width="90" />
-                <DataGridTextColumn Header="Controller" Binding="{Binding LastController}" Width="120" />
-            </DataGrid.Columns>
-        </DataGrid>
-
-        <GroupBox Grid.Row="3" Header="MIDI log" Margin="0,12,0,12">
-            <ListBox ItemsSource="{Binding LogEntries}" BorderThickness="0" />
-        </GroupBox>
-
-        <TextBlock Grid.Row="4" Foreground="DimGray" Text="{Binding Status}" />
-    </Grid>
+    </ScrollViewer>
 </Window>

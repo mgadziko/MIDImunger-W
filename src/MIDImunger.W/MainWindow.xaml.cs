@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.ComponentModel;
+using System.Windows;
 
 namespace MIDImunger.W;
 
@@ -8,6 +9,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = new MainWindowViewModel();
+        ApplyWindowPlacement();
     }
 
     private async void AllNotesOff_Click(object sender, RoutedEventArgs e)
@@ -20,10 +22,18 @@ public partial class MainWindow : Window
         await ((MainWindowViewModel)DataContext).SendDxPlayAsync();
     }
 
+    private void ClearCc_Click(object sender, RoutedEventArgs e)
+    {
+        ((MainWindowViewModel)DataContext).ClearControlChanges();
+    }
+
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
         await ((MainWindowViewModel)DataContext).RefreshEndpointsAsync();
     }
+
+    public void ApplySystemTheme() =>
+        ThemeResources.ApplyWindowTheme(this);
 
     private async void RefreshEndpoints_Click(object sender, RoutedEventArgs e)
     {
@@ -49,5 +59,53 @@ public partial class MainWindow : Window
     private async void Window_Closed(object? sender, EventArgs e)
     {
         await ((MainWindowViewModel)DataContext).DisposeAsync();
+    }
+
+    private void Window_Closing(object? sender, CancelEventArgs e)
+    {
+        var isMaximized = WindowState == WindowState.Maximized;
+        var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+        WindowSettingsService.Save(new WindowPlacementSettings(bounds.Left, bounds.Top, bounds.Height, isMaximized));
+    }
+
+    private void Window_SourceInitialized(object? sender, EventArgs e)
+    {
+        ApplySystemTheme();
+    }
+
+    private void ApplyWindowPlacement()
+    {
+        var settings = WindowSettingsService.Load();
+        if (settings is null)
+        {
+            return;
+        }
+
+        if (IsOnScreen(settings.Left, settings.Top, Width, settings.Height))
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = settings.Left;
+            Top = settings.Top;
+        }
+
+        if (!settings.IsMaximized && settings.Height > 0)
+        {
+            Height = settings.Height;
+        }
+
+        if (settings.IsMaximized)
+        {
+            WindowState = WindowState.Maximized;
+        }
+    }
+
+    private static bool IsOnScreen(double left, double top, double width, double height)
+    {
+        var virtualScreen = new Rect(
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
+        return virtualScreen.IntersectsWith(new Rect(left, top, width, height));
     }
 }

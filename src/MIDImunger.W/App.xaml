@@ -1,9 +1,87 @@
 ﻿<Application x:Class="MIDImunger.W.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:MIDImunger.W"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FFF7F7F7" />
+        <SolidColorBrush x:Key="SurfaceBackgroundBrush" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#FFF0F0F0" />
+        <SolidColorBrush x:Key="ControlForegroundBrush" Color="#FF1F1F1F" />
+        <SolidColorBrush x:Key="SubtleForegroundBrush" Color="#FF666666" />
+        <SolidColorBrush x:Key="HeadingForegroundBrush" Color="#FF0B5394" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#FFD0D0D0" />
+        <SolidColorBrush x:Key="AlternateRowBackgroundBrush" Color="#FFF7F7F7" />
+        <SolidColorBrush x:Key="SelectionBackgroundBrush" Color="#FFCCE8FF" />
+        <SolidColorBrush x:Key="ButtonHoverBackgroundBrush" Color="#FFE5F1FB" />
+        <SolidColorBrush x:Key="ButtonHoverForegroundBrush" Color="#FF1F1F1F" />
+        <SolidColorBrush x:Key="ButtonPressedBackgroundBrush" Color="#FFCCE4F7" />
+        <SolidColorBrush x:Key="ButtonPressedForegroundBrush" Color="#FF1F1F1F" />
+        <SolidColorBrush x:Key="LedBackgroundBrush" Color="#FF081108" />
+        <SolidColorBrush x:Key="LedForegroundBrush" Color="#FF5CFF72" />
+        <SolidColorBrush x:Key="LedBorderBrush" Color="#FF1E4A24" />
+
+        <Style TargetType="{x:Type Window}">
+            <Setter Property="Background" Value="{DynamicResource WindowBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}" />
+        </Style>
+
+        <Style TargetType="{x:Type GroupBox}">
+            <Setter Property="Foreground" Value="{DynamicResource HeadingForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        </Style>
+
+        <Style TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource ButtonHoverForegroundBrush}" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ButtonPressedBackgroundBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource ButtonPressedForegroundBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="{x:Type CheckBox}">
+            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}" />
+        </Style>
+
+        <Style TargetType="{x:Type ListBox}">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        </Style>
+
+        <Style TargetType="{x:Type DataGrid}">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="RowBackground" Value="{DynamicResource SurfaceBackgroundBrush}" />
+            <Setter Property="AlternatingRowBackground" Value="{DynamicResource AlternateRowBackgroundBrush}" />
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="VerticalGridLinesBrush" Value="{DynamicResource BorderBrush}" />
+        </Style>
+
+        <Style TargetType="{x:Type DataGridColumnHeader}">
+            <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource LedForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        </Style>
+
+        <Style TargetType="{x:Type DataGridCell}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        </Style>
+
+        <Style TargetType="{x:Type DataGridRow}">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}" />
+        </Style>
     </Application.Resources>
 </Application>
